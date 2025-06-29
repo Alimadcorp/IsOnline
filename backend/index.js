@@ -87,10 +87,6 @@ app.get("/app", (req, res) => {
   res.type("text").send(myId.toString());
 });
 
-app.get("/app/:id", (req, res) => {
-  res.type("text").send(req.params.id);
-});
-
 app.get("/cleanup", async (req, res) => {
   const snap = await db.ref("online_status").once("value");
   const apps = snap.val() || {};
