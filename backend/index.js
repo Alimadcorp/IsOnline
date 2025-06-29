@@ -144,9 +144,6 @@ app.get("/", (req, res) => {
       <h3><code>GET /app</code></h3>
       <p>Returns your generated user ID (based on IP).</p>
 
-      <h3><code>GET /app/ID</code></h3>
-      <p>Returns the same <code>ID</code> string you pass. Useful for testing.</p>
-
       <h2>Rate Limit</h2>
       <p>Each IP can ping up to <strong>50 times per minute</strong>.</p>
 
@@ -158,7 +155,7 @@ app.get("/", (req, res) => {
       </ul>
 
       <h2>Source</h2>
-      <p>GitHub: <a href="https://Alimadcorp.github.io/isonline" target="_blank">Alimadcorp.github.io/isonline</a></p>
+      <p>GitHub: <a href="https://Alimadcorp.github.io/isonline" target="_blank">IsOnline</a></p>
 
       <script>
         async function updateCounter() {
