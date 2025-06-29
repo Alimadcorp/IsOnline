@@ -1,6 +1,7 @@
-import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getDatabase } from "firebase-admin/database";
+const { initializeApp, cert, getApps } = require("firebase-admin/app");
+const { getDatabase } = require("firebase-admin/database");
 const cred = require("./madwebrtc-firebase.json");
+require("dotenv").config();
 
 if (!getApps().length) {
   initializeApp({
@@ -9,4 +10,5 @@ if (!getApps().length) {
   });
 }
 
-export const db = getDatabase();
+const db = getDatabase();
+module.exports = { db };

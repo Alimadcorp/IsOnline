@@ -1,13 +1,15 @@
 {
-    "functions": {
-        "api/index.ts": {
-            "runtime": "vercel-node@3"
-        }
-    },
-    "cron": [
+    "version": 2,
+    "builds": [
         {
-            "path": "/api/cleanup",
-            "schedule": "*/5 * * * *"
+            "src": "*.js",
+            "use": "@vercel/node"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "/index.js"
         }
     ]
 }
