@@ -11,7 +11,7 @@ app.use(cors());
 const PORT = 5500;
 const TIMEOUT = 2 * 60 * 1000;
 function dateParse(date) {
-  if(date == 0 || date == "0") return new Date(0)
+  if (date == 0 || date == "0") return new Date(0);
   const match = /^(\d{1,2})-(\d{1,2})-(\d{2,4})T(\d{1,2})$/.exec(date);
   if (!match) return null;
 
@@ -43,11 +43,9 @@ app.get("/ping", async (req, res) => {
   let { app } = req.query;
   let t = validate(app);
   if (!t.valid) {
-    if (t.type == "forbidden") {
-      return res.status(403).send(t.error);
-    }
     return res.status(400).send(t);
   }
+  app = t.id;
   const ip = getIp(req);
   const myId = ipToId(ip);
   //console.log(app, myId, ip);
@@ -110,10 +108,10 @@ app.get("/ping", async (req, res) => {
 });
 
 app.get("/stats", async (req, res) => {
-  const { app } = req.query;
+  let { app } = req.query;
   let t = validate(app);
   if (!t.valid) return res.status(400).json(t);
-
+  app = t.id;
   const snap = await db.ref(`stats/${app}`).once("value");
   let data = snap.val() || {
     pings: {},
@@ -149,11 +147,9 @@ app.get("/leave", async (req, res) => {
   let { app } = req.query;
   let t = validate(app);
   if (!t.valid) {
-    if (t.type == "forbidden") {
-      return res.status(403).send(t.error);
-    }
     return res.status(400).send(t);
   }
+  app = t.id;
   if (!app || !myId) return res.status(400).send("Missing app or myId");
 
   await db.ref(`online_status/${app}/${myId}`).remove();
@@ -162,8 +158,11 @@ app.get("/leave", async (req, res) => {
 
 app.get("/get", async (req, res) => {
   let { app } = req.query;
-  if (typeof app !== "string")
-    return res.status(400).send("Invalid app ID format");
+  let t = validate(app);
+  if (!t.valid) {
+    return res.status(400).send(t);
+  }
+  app = t.id;
   if (!app.includes(",")) app = [app];
   else app = app.split(",");
   if (!Array.isArray(app))
@@ -192,27 +191,62 @@ app.get("/get", async (req, res) => {
 });
 
 // End of main API
+function base64toString(str) {
+  return atob(str.replaceAll("-", "+").replaceAll("_", "/"));
+}
 
-app.get(`/cleanup/${process.env.adwinPassword}`, async (req, res) => {
+app.get(`/admin/${process.env.adwinPassword}`, async (req, res) => {
   const token = req.query.key;
+  const action = req.query.action;
+  let app = req.query.app;
   if (token !== process.env.otherPassword) {
     return res.sendStatus(404);
   }
-  const snap = await db.ref("online_status").once("value");
-  const apps = snap.val() || {};
-  const now = Date.now();
-  let removed = 0;
+  if (!action) return res.send("no action :)");
+  if (action == "checkout") {
+    const snap = await db
+      .ref("online_status" + (app ? `/${btoa(app)}` : ""))
+      .once("value");
+    let val = snap.val();
+    if (!app) {
+      let r = {};
+      let k = Object.keys(val);
+      for (let i = 0; i < k.length; i++) {
+        r[base64toString(k[i])] = val[k[i]];
+      }
+      return res.send(r);
+    }
+    return res.send(val);
+  }
+  if (action == "checkoutstats") {
+    const snap = await db.ref("stats").once("value");
+    let val = snap.val();
+    let r = {};
+    let k = Object.keys(val);
+    for (let i = 0; i < k.length; i++) {
+      r[base64toString(k[i])] = val[k[i]];
+    }
+    return res.send(r);
+  }
+  if (action == "clear") {
+    let snap = await db
+      .ref("online_status" + (app ? `/${btoa(app)}` : ""))
+      .once("value");
+    const apps = snap.val() || {};
+    const now = Date.now();
+    let removed = 0;
 
-  for (const app in apps) {
-    for (const user in apps[app]) {
-      if (now - apps[app][user] >= TIMEOUT) {
-        await db.ref(`online_status/${app}/${user}`).remove();
-        removed++;
+    for (const app in apps) {
+      for (const user in apps[app]) {
+        if (now - apps[app][user] >= TIMEOUT) {
+          await db.ref(`online_status/${app}/${user}`).remove();
+          removed++;
+        }
       }
     }
-  }
 
-  res.type("text").send(`Cleaned ${removed} inactive users`);
+    res.type("text").send(`Cleaned ${removed} inactive users`);
+  }
 });
 
 app.get("/", (req, res) => {
@@ -220,17 +254,16 @@ app.get("/", (req, res) => {
 });
 
 app.get("/stats/view", async (req, res) => {
-  const { app: appId } = req.query;
-  const t = validate(appId);
-  if (!t.valid) return res.status(400).send("Invalid app ID");
-
-  const snap = await db.ref(`stats/${appId}`).once("value");
+  let { app } = req.query;
+  const t = validate(app);
+  if (!t.valid) return res.status(400).send(t.error);
+  app = t.id;
+  const snap = await db.ref(`stats/${app}`).once("value");
   const data = snap.val() || { pings: {}, maxConcurrent: {} };
   const labels = Object.keys(data.pings || {});
   const values = Object.values(data.pings || {});
 
   let concurrent = labels.map((d) => data.maxConcurrent?.[d] || 0);
-  //delete concurrent.maxConcurrent;
   const maxPing = Math.max(...values, 1);
   const maxConcurrent = Math.max(...concurrent, 1);
   const normalizedConcurrent = concurrent.map((v) =>
@@ -241,12 +274,12 @@ app.get("/stats/view", async (req, res) => {
   const labelJSON = JSON.stringify(labels);
   const valueJSON = JSON.stringify(values);
   const normalizedJSON = JSON.stringify(normalizedConcurrent);
-
+  app = base64toString(app);
   res.send(`
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Stats for ${appId}</title>
+      <title>Stats for ${app}</title>
       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
       <style>
         body { font-family: sans-serif; background: #111; color: #eee; padding: 2rem }
@@ -254,7 +287,7 @@ app.get("/stats/view", async (req, res) => {
       </style>
     </head>
     <body>
-      <h1>Stats for <code>${appId}</code></h1>
+      <h1>Stats for <code>${app}</code></h1>
       <p><strong>Total Pings:</strong> ${data.totalPings || 0}</p>
       <p><strong>Unique Users:</strong> ${data.uniqueIds || 0}</p>
       <p><strong>Last Ping:</strong> ${new Date(
