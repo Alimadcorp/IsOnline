@@ -26,9 +26,7 @@ function validate(str) {
       type: "reserved",
     };
   }
-  
-  str = encodeURIComponent(str);
-  
+
   if(!/^[A-Za-z0-9\/\:\.\\_\%\-]+$/.test(str)){
     return {
       valid: false,

@@ -249,8 +249,18 @@ app.get(`/admin/${process.env.adwinPassword}`, async (req, res) => {
   }
 });
 
-app.get("/", (req, res) => {
-  res.type("html").send(atob(page));
+app.get("/", async (req, res) => {
+  let r = atob(page);
+  let ux = await fetch("https://live.alimad.xyz/ping?app=live");
+  let u = await ux.text();
+  r = `<!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta
+        property="og:description"
+        content="${u} people are currently viewing this page"
+      />` + r;
+  res.type("html").send(r);
 });
 
 app.get("/stats/view", async (req, res) => {
@@ -374,6 +384,88 @@ const sitemap = `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <priority>1.0</priority>
 </url>
 </urlset>`;
+
+app.get("/embed", async (req, res) => {
+  res.type("html").send(`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+  html, body {
+    overflow: hidden;
+    width: max-content;
+    height: 100%;
+  }  
+    body {
+      margin: 0;
+      background: #fff;
+      font-family: sans-serif;
+      color: #000;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      font-size: 14px;
+    }
+    #live-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #999;
+      flex-shrink: 0;
+    }
+    a {
+      color: inherit;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body>
+  <a target="_blank" id="live-link">
+    <span id="live-dot"></span>
+    <span id="live-count">Loading...</span>
+  </a>
+  <script>
+    function getAppId(url) {
+      try {
+        return url.split("?")[0].replace(/^https*:\\/\\//, "").replace(/[^A-Za-z0-9\/\:\.\\_\%\-]/g, "").slice(0, 64);
+      } catch (e) {
+        return "unknown";
+      }
+    }
+
+    const ref = document.referrer || "";
+    const app = getAppId(ref);
+    const dot = document.getElementById("live-dot");
+    const count = document.getElementById("live-count");
+    const link = document.getElementById("live-link");
+    link.href = "https://live.alimad.xyz/stats/view?app=" + app;
+
+    async function updateCount() {
+      try {
+        const res = await fetch("https://live.alimad.xyz/ping?app=" + app);
+        if (res.ok) {
+          const text = await res.text();
+          dot.style.background = "#4CAF50";
+          count.textContent = text + " online";
+        } else throw new Error();
+      } catch {
+        dot.style.background = "#999";
+        count.textContent = "Offline";
+      }
+    }
+
+    updateCount();
+    setInterval(updateCount, 20000);
+  <\/script>
+</body>
+</html>
+  `);
+});
 
 app.get("/robots.txt", (req, res) => {
   res.type("text").send(robots);

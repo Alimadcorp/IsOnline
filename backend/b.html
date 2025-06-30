@@ -1,6 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
@@ -9,10 +6,6 @@
     />
     <meta name="robots" content="index, follow" />
     <meta property="og:title" content="Live API" />
-    <meta
-      property="og:description"
-      content="Track online users and stats in real time using the Alimad Live API."
-    />
     <meta
       property="og:image"
       content="https://cdn-icons-png.freepik.com/256/11762/11762483.png"
@@ -256,7 +249,7 @@
       <div id="errorText" class="error-text"></div>
       <div id="successText" class="success-text"></div>
 
-      <h3>HTML Embed Code</h3>
+      <h3>HTML Code</h3>
       <p>Copy this code to show live user counts on your website:</p>
       <textarea id="htmlOutput" readonly rows="6"></textarea>
       <button id="copyBtn" class="copy-btn">Copy to Clipboard</button>
@@ -323,6 +316,16 @@
         </div>
         <p>Manually removes your user from the online count.</p>
         <p>Response: <code>Done</code></p>
+      </div>
+
+      <div class="endpoint">
+        <div class="endpoint-title">
+          <span class="endpoint-method">GET</span>
+          <span class="endpoint-url">/embed</span>
+        </div>
+        <p>One line embed into any page.</p>
+        <code>&lt;iframe src="https://live.alimad.xyz/embed" style="border:0;width:85px;height:26px;"&gt;&lt;/iframe&gt;</code><br>
+        <iframe src="/embed" style="border:0;width:85px;height:26px;"></iframe>
       </div>
 
       <div class="endpoint">
@@ -451,8 +454,7 @@
         if (typeof app !== "string") return { valid: false, error: "App ID must be text" };
         if (app.length > 64) return { valid: false, error: "Maximum length is 64 characters" };
         if (app.length < 4) return { valid: false, error: "App ID must be at least 4 characters" };
-        app = encodeURIComponent(app);
-        if(!/^[A-Za-z0-9\/\:\.\\_\%\-]+$/.test(str)){
+        if(!/^[A-Za-z0-9\/\:\.\\_\%\-]+$/.test(app)){
           return {
             valid: false,
             error: "Only alphabets, numbers, slashes, %, _, -, and . are allowed",
