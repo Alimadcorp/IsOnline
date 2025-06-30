@@ -1,6 +1,6 @@
 const hits = new Map();
 const INTERVAL = 60_000;
-const MAX = 50;
+const MAX = 20;
 
 function checkRate(ip) {
   const now = Date.now();
