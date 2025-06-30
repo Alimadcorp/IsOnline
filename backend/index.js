@@ -10,7 +10,6 @@ const app = express();
 app.use(cors());
 const PORT = 5500;
 const TIMEOUT = 2 * 60 * 1000;
-
 function dateParse(date) {
   const match = /^(\d{1,2})-(\d{1,2})-(\d{2,4})T(\d{1,2})$/.exec(date);
   if (!match) return null;

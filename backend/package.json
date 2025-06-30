@@ -5,6 +5,7 @@
     "dotenv": "^17.0.0",
     "express": "^5.1.0",
     "firebase": "^11.9.1",
-    "firebase-admin": "^13.4.0"
+    "firebase-admin": "^13.4.0",
+    "fs": "^0.0.1-security"
   }
 }
