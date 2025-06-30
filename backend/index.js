@@ -11,6 +11,7 @@ app.use(cors());
 const PORT = 5500;
 const TIMEOUT = 2 * 60 * 1000;
 function dateParse(date) {
+  if(date == 0 || date == "0") return new Date(0)
   const match = /^(\d{1,2})-(\d{1,2})-(\d{2,4})T(\d{1,2})$/.exec(date);
   if (!match) return null;
 
@@ -49,6 +50,7 @@ app.get("/ping", async (req, res) => {
   }
   const ip = getIp(req);
   const myId = ipToId(ip);
+  console.log(app, myId, ip);
   if (!app && !myId) return res.status(400).send("Missing app or myId");
 
   const ref = db.ref(`online_status/${app}/${myId}`);
@@ -227,7 +229,8 @@ app.get("/stats/view", async (req, res) => {
   const labels = Object.keys(data.pings || {});
   const values = Object.values(data.pings || {});
 
-  const concurrent = labels.map((d) => data.maxConcurrent?.[d] || 0);
+  let concurrent = labels.map((d) => data.maxConcurrent?.[d] || 0);
+  //delete concurrent.maxConcurrent;
   const maxPing = Math.max(...values, 1);
   const maxConcurrent = Math.max(...concurrent, 1);
   const normalizedConcurrent = concurrent.map((v) =>
@@ -254,7 +257,7 @@ app.get("/stats/view", async (req, res) => {
       <h1>Stats for <code>${appId}</code></h1>
       <p><strong>Total Pings:</strong> ${data.totalPings || 0}</p>
       <p><strong>Unique Users:</strong> ${data.uniqueIds || 0}</p>
-      <p><strong>Last Ping:</strong> ${dateParse(
+      <p><strong>Last Ping:</strong> ${new Date(
         data.lastPing || 0
       ).toLocaleString()}</p>
       <p><strong>Max Concurrent (Today):</strong> ${
