@@ -4,7 +4,7 @@ const { db } = require("./lib/firebase");
 const { checkRate } = require("./lib/ratelimit");
 const { ipToId } = require("./lib/ipToId");
 const { validate } = require("./lib/validate");
-const e = require("express");
+const { page } = require("./lib/page");
 
 const app = express();
 app.use(cors());
@@ -50,7 +50,6 @@ app.get("/ping", async (req, res) => {
   }
   const ip = getIp(req);
   const myId = ipToId(ip);
-  console.log(app, myId);
   if (!app && !myId) return res.status(400).send("Missing app or myId");
 
   const ref = db.ref(`online_status/${app}/${myId}`);
@@ -126,10 +125,16 @@ app.get("/stats", async (req, res) => {
     },
   };
   let p = Object.fromEntries(
-    Object.entries(data.pings).map(([key, value]) => [dateParse(key)?.toISOString() || key, value])
+    Object.entries(data.pings).map(([key, value]) => [
+      dateParse(key)?.toISOString() || key,
+      value,
+    ])
   );
   let m = Object.fromEntries(
-    Object.entries(data.maxConcurrent).map(([key, value]) => [dateParse(key)?.toISOString() || key, value])
+    Object.entries(data.maxConcurrent).map(([key, value]) => [
+      dateParse(key)?.toISOString() || key,
+      value,
+    ])
   );
   data.pings = p;
   data.maxConcurrent = m;
@@ -156,10 +161,12 @@ app.get("/leave", async (req, res) => {
 
 app.get("/get", async (req, res) => {
   let { app } = req.query;
-  if (typeof app !== "string") return res.status(400).send("Invalid app ID format");
+  if (typeof app !== "string")
+    return res.status(400).send("Invalid app ID format");
   if (!app.includes(",")) app = [app];
   else app = app.split(",");
-  if (!Array.isArray(app)) return res.status(400).send("Failed to parse app list");
+  if (!Array.isArray(app))
+    return res.status(400).send("Failed to parse app list");
   app = app.slice(0, 64);
 
   for (const id of app) {
@@ -208,7 +215,7 @@ app.get(`/cleanup/${process.env.adwinPassword}`, async (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.sendFile("page.html", { root: "public" });
+  res.type("html").send(atob(page));
 });
 
 app.get("/stats/view", async (req, res) => {
@@ -319,22 +326,36 @@ app.get("/stats/view", async (req, res) => {
   `);
 });
 
+const robots = `User-agent: *
+Allow: /
+Disallow: /ping
+Disallow: /leave
+Disallow: /cleanup`;
+
+const sitemap = `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<url>
+  <loc>https://live.alimad.xyz/</loc>
+  <changefreq>weekly</changefreq>
+  <priority>1.0</priority>
+</url>
+</urlset>`;
+
 app.get("/robots.txt", (req, res) => {
-  res.sendFile("robots.txt", { root: "public" });
+  res.type("text").send(robots);
 });
 
 app.get("/sitemap.xml", (req, res) => {
-  res.sendFile("sitemap.xml", { root: "public" });
+  res.type("application/xml").send(sitemap);
 });
 
 app.get("/robots", (req, res) => {
-  res.sendFile("robots.txt", { root: "public" });
+  res.type("text").send(robots);
 });
 
 app.get("/sitemap", (req, res) => {
-  res.sendFile("sitemap.xml", { root: "public" });
+  res.type("application/xml").send(sitemap);
 });
 
 app.listen(PORT, () => {
-  console.log(`IsOnline API running at http://localhost:${PORT}`);
+  console.log(`Live API running at http://localhost:${PORT}`);
 });

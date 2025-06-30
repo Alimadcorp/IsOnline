@@ -1,5 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /ping
-Disallow: /leave
-Disallow: /cleanup
