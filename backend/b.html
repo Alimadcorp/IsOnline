@@ -249,7 +249,7 @@
       <h2>How It Works</h2>
       <ol>
         <li>Your app calls <code>/ping</code> with your unique App ID</li>
-        <li>The API registers this user (by hashing their ip address anf using it as a user id) as "online"</li>
+        <li>The API registers this user as "online"</li>
         <li>The API returns the current number of online users</li>
         <li>Users are automatically removed after 2 minutes of inactivity</li>
       </ol>
@@ -349,6 +349,7 @@
           <span class="endpoint-url">/stats/view?app=[AppId]</span>
         </div>
         <p>View your stats in a pretty HTML page (great for quick checks).</p>
+        <iframe src="/stats/view?app=live" width="100%" height="500px"></iframe>
       </div>
     </section>
 
@@ -478,12 +479,12 @@
 
         successText.textContent = "Looks good! Copy the embed code below.";
 
-        const html = `<div id="live-counter" style="font-family: sans-serif; color: #4CAF50; display: inline-flex; align-items: center; gap: 6px;">
+        const html = `<a target="_blank" href="https://live.alimad.xyz/stats/view?app=${app}"><div id="live-counter" style="font-family: sans-serif; color: #4CAF50; display: inline-flex; align-items: center; gap: 6px;">
   <span style="width: 10px; height: 10px; border-radius: 50%; background: #4CAF50;" id="live-dot"></span>
   <span id="live-count">Loading...</span>
-</div>
+</div></a>
 <script>
-(async function() {
+async function updateGlobalAppUserCount() {
   const dot = document.getElementById('live-dot');
   const count = document.getElementById('live-count');
   try {
@@ -499,7 +500,8 @@
     dot.style.background = '#f44336';
     count.textContent = 'Offline';
   }
-})();
+};
+setInterval(updateGlobalAppUserCount, 20000);
 <\/script>`;
 
         document.getElementById("htmlOutput").value = html;

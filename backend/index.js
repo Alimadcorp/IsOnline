@@ -50,7 +50,7 @@ app.get("/ping", async (req, res) => {
   }
   const ip = getIp(req);
   const myId = ipToId(ip);
-  console.log(app, myId, ip);
+  //console.log(app, myId, ip);
   if (!app && !myId) return res.status(400).send("Missing app or myId");
 
   const ref = db.ref(`online_status/${app}/${myId}`);
@@ -260,7 +260,7 @@ app.get("/stats/view", async (req, res) => {
       <p><strong>Last Ping:</strong> ${new Date(
         data.lastPing || 0
       ).toLocaleString()}</p>
-      <p><strong>Max Concurrent (Today):</strong> ${
+      <p><strong>Max Concurrent (Last Hour):</strong> ${
         data.maxConcurrent?.[labels.at(-1)] || 0
       }</p>
       <p><strong>Max Concurrent (All Time):</strong> ${
@@ -277,7 +277,7 @@ app.get("/stats/view", async (req, res) => {
             labels: ${labelJSON},
             datasets: [
               {
-                label: 'Pings per Day',
+                label: 'Pings per Hour',
                 data: ${valueJSON},
                 borderColor: 'lime',
                 backgroundColor: 'rgba(0,255,0,0.1)',
@@ -300,7 +300,7 @@ app.get("/stats/view", async (req, res) => {
               legend: { labels: { color: "#eee" } },
               title: {
                 display: true,
-                text: 'Daily Ping Activity with Concurrent Users',
+                text: 'Hourly Ping Activity with Concurrent Users',
                 color: "#eee"
               },
               tooltip: {
