@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const { db } = require("./lib/firebase");
-const { checkRate } = require("./lib/ratelimit");
 const { ipToId } = require("./lib/ipToId");
 const { validate } = require("./lib/validate");
 const { page } = require("./lib/page");
@@ -35,12 +34,6 @@ function getIp(req, log = "") {
     "unknown"
   );
 }
-
-app.use((req, res, next) => {
-  const ip = getIp(req);
-  if (!checkRate(ip)) return res.status(429).send("Rate limit exceeded");
-  next();
-});
 
 app.get("/ping", async (req, res) => {
   let { app, option } = req.query;
