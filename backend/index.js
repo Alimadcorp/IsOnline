@@ -25,7 +25,10 @@ function dateParse(date) {
   return new Date(isoString);
 }
 
-function getIp(req) {
+function getIp(req, log = "") {
+  if (log) {
+    //console.log(req.headers["x-forwarded-for"], log);
+  }
   return (
     req.headers["x-forwarded-for"]?.split(",")[0].trim() ||
     req.socket.remoteAddress ||
@@ -40,13 +43,16 @@ app.use((req, res, next) => {
 });
 
 app.get("/ping", async (req, res) => {
-  let { app } = req.query;
+  let { app, option } = req.query;
   let t = validate(app);
   if (!t.valid) {
     return res.status(400).send(t);
   }
+  let ip = getIp(req);
+  if (app == "live") {
+    ip = getIp(req, app + " " + ipToId(ip));
+  }
   app = t.id;
-  const ip = getIp(req);
   const myId = ipToId(ip);
   //console.log(app, myId, ip);
   if (!app && !myId) return res.status(400).send("Missing app or myId");
@@ -158,21 +164,21 @@ app.get("/leave", async (req, res) => {
 
 app.get("/get", async (req, res) => {
   let { app } = req.query;
-  let t = validate(app);
-  if (!t.valid) {
-    return res.status(400).send(t);
-  }
-  app = t.id;
   if (!app.includes(",")) app = [app];
-  else app = app.split(",");
+  else app = app.split(",").filter(Boolean);
   if (!Array.isArray(app))
     return res.status(400).send("Failed to parse app list");
-  app = app.slice(0, 64);
 
   for (const id of app) {
     const t = validate(id);
     if (!t.valid) {
-      return res.status(400).send(`Invalid app ID: ${id}`);
+      return res
+        .status(400)
+        .send(
+          `Invalid app ID: ${
+            app.toString() + id + JSON.stringify(validate(id))
+          }`
+        );
     }
   }
 
@@ -188,6 +194,50 @@ app.get("/get", async (req, res) => {
   }
 
   res.type("text").send(total.toString());
+});
+
+app.get("/visited", async (req, res) => {
+  let { app } = req.query;
+  let myId = ipToId(getIp(req));
+  if (!app.includes(",")) app = [app];
+  else app = app.split(",").filter(Boolean);
+  if (!Array.isArray(app))
+    return res.status(400).send("Failed to parse app list");
+  let visited = {};
+  for (const id of app) {
+    const t = validate(id);
+    if (!t.valid) {
+      return res
+        .status(400)
+        .send(
+          `Invalid app ID: ${
+            app.toString() + id + JSON.stringify(validate(id))
+          }`
+        );
+    }
+  }
+
+  const snap = await db.ref(`stats`).once("value");
+  const data = snap.val() || {};
+  for (const appId of app) {
+    const id = validate(appId).id;
+    let d = data[id];
+    if (!d) {
+      visited[appId] = false;
+      continue;
+    }
+    console.log(d.registeredIds);
+    visited[appId] = false;
+    for (let i = 0; i < d.registeredIds.length; i++) {
+      let key = d.registeredIds[i];
+      if (key == myId) {
+        visited[appId] = true;
+        continue;
+      }
+    }
+  }
+
+  res.send(visited);
 });
 
 // End of main API
@@ -247,13 +297,33 @@ app.get(`/admin/${process.env.adwinPassword}`, async (req, res) => {
 
     res.type("text").send(`Cleaned ${removed} inactive users`);
   }
+  if (action == "clearall") {
+    let snap = await db
+      .ref("online_status" + (app ? `/${btoa(app)}` : ""))
+      .once("value");
+    const apps = snap.val() || {};
+    const now = Date.now();
+    let removed = 0;
+
+    for (const app in apps) {
+      for (const user in apps[app]) {
+        if (now - apps[app][user] >= TIMEOUT) {
+          await db.ref(`online_status/${app}/${user}`).remove();
+          removed++;
+        }
+      }
+    }
+
+    res.type("text").send(`Cleaned ${removed} inactive users`);
+  }
 });
 
 app.get("/", async (req, res) => {
   let r = atob(page);
-  let ux = await fetch("https://live.alimad.xyz/ping?app=live");
+  let ux = await fetch("https://live.alimad.xyz/get?app=live");
   let u = await ux.text();
-  r = `<!DOCTYPE html>
+  r =
+    `<!DOCTYPE html>
   <html lang="en">
     <head>
       <meta
